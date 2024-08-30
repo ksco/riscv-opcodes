@@ -1025,12 +1025,97 @@ def signed(value, width):
   else:
     return value - (1<<width)
 
+fr = {
+    #               a.?            parser  zero  width
+    "rd": [11, 7, "rd",         False, False],
+    "rs2": [24, 20, "rs2",      False, False],
+    "rs1": [19, 15, "rs1",      False, False],
+    "rs3": [31, 27, "rs3",      False, False],
+    "aq": [26, 26, "aq",        False, False],
+    "rl": [25, 25, "rl",        False, False],
+    "rm": [14, 12, "rm",        False, False],
+    "imm20": [31, 12, "imm",    False, False],
+    "jimm20": [31, 12, "imm",   True,  False],
+    "imm12": [31, 20, "imm",    False, False],
+    "csr": [31, 20, "csr",      False, False],
+    "imm12hi": [31, 25, "imm",  True,  False],
+    "bimm12hi": [31, 25, "imm", True,  False],
+    "imm12lo": [11, 7, None,    False, False],
+    "bimm12lo": [11, 7, None,   False, False],
+    "shamtw": [24, 20, "imm",   False, False],
+    "shamtw4": [23, 20, "imm",  False, False],
+    "shamtd": [25, 20, "imm",   False, False],
+    "imm2": [21, 20, "imm",     False, False],
+    "imm3": [22, 20, "imm",     False, False],
+    "imm4": [23, 20, "imm",     False, False],
+    "imm5": [24, 20, "imm",     False, False],
+    "imm6": [25, 20, "imm",     False, False],
+    "zimm": [19, 15, "imm",     False, False],
+    "vd": [11, 7, "vd",         False, False],
+    "vs3": [11, 7, "vs3",       False, False],
+    "vs1": [19, 15, "vs1",      False, False],
+    "vs2": [24, 20, "vs2",      False, False],
+    "vm": [25, 25, "vm",        False, False],
+    "nf": [31, 29, "nf",        False, False],
+    "simm5": [19, 15, "imm",    False, False],
+    "zimm5": [19, 15, "imm",    False, False],
+    "zimm10": [29, 20, "imm",   False, False],
+    "zimm11": [30, 20, "imm",   False, False],
+}
+
+def arrname(instr_name, fieldname, ext):
+    if fieldname not in ["rd", "rs1", "rs2", "rs3"]:
+        return fieldname
+
+    if ext == "rv_v":
+        if instr_name.startswith("vf"):
+            return "fpr"
+        else:
+            return "gpr"
+    elif ext in ["rv_f", "rv_d", "rv64_f", "rv64_d"]:
+        if instr_name.startswith("fclass"):
+            return "gpr" if fieldname == "rd" else "fpr"
+        if instr_name.startswith("fcvt"):
+            return "fpr" if instr_name.split("_")[1 if fieldname == "rd" else 2] in ["s", "d"] else "gpr"
+        if instr_name.startswith("fmv"):
+            return "gpr" if instr_name.split("_")[1 if fieldname == "rd" else 2] == "x" else "fpr"
+        return "fpr"
+    else:
+        return "gpr"
+
+
+def argstr(instr_name, fieldname, ext):
+    if fr[fieldname][2] == "imm" and not fieldname.startswith("z") and not fieldname.endswith("hi"):
+        return f"SIGN_EXTEND(a.imm, {fr[fieldname][0]-fr[fieldname][1]})"
+    elif fr[fieldname][2] == "imm":
+        return "a.imm"
+    return f"{arrname(instr_name, fieldname, ext)}[a.{fieldname}]"
+
+
+def getparser(f):
+    if f == "imm12hi":
+        return "a.imm = (FX(opcode, 31, 25) << 5) | (FX(opcode, 11, 7));"
+    elif f == "bimm12hi":
+        return """a.imm = BX(opcode, 31) << 12;
+        a.imm |= BX(opcode, 7) << 11;
+        a.imm |= FX(opcode, 30, 25) << 5;
+        a.imm |= FX(opcode, 11, 8) << 1;
+        a.imm = SIGN_EXTEND(a.imm, 13);
+"""
+    elif f == "jimm20":
+        return """a.imm = BX(opcode, 31) << 20;
+        a.imm |= FX(opcode, 19, 12) << 12;
+        a.imm |= BX(opcode, 20) << 11;
+        a.imm |= FX(opcode, 30, 21) << 1;
+        a.imm = SIGN_EXTEND(a.imm, 21);
+"""
+    return f"0; // TODO {f}"
 
 if __name__ == "__main__":
     print(f'Running with args : {sys.argv}')
 
     extensions = sys.argv[1:]
-    for i in ['-c','-latex','-chisel','-sverilog','-rust', '-go', '-spinalhdl']:
+    for i in ['-c', '-latex', '-chisel', '-sverilog', '-rust', '-go', '-spinalhdl', '-box64']:
         if i in extensions:
             extensions.remove(i)
     print(f'Extensions selected : {extensions}')
@@ -1038,6 +1123,30 @@ if __name__ == "__main__":
     include_pseudo = False
     if "-go" in sys.argv[1:]:
         include_pseudo = True
+    instr_dict = create_inst_dict(extensions, include_pseudo=False)
+    instr_dict = collections.OrderedDict(sorted(instr_dict.items()))
+
+    known_fields = {"rd", "rs1", "rs2", "rs3", "vd", "vs1", "vs2", "vs3", "vm", "imm20"}
+
+    newline = "\n"
+    if '-box64' in sys.argv[1:]:
+        for name, instr in instr_dict.items():
+            print(f"// {instr['extension'][0]:>7}, {name.upper().replace('_', '.')}")
+            if instr["extension"][0] == "rv_v":
+                instr["variable_fields"].reverse()
+            if name == "fence":
+                print(f"""if ((opcode & {instr['mask']} == {instr['match']})) {{
+    snprintf(buff, sizeof(buff), "%-15s", "{name.upper()}");
+    return buff;
+}}
+""")
+                continue
+            print(f"""if ((opcode & {instr["mask"]} == {instr["match"]})) {{
+{newline.join([f"    a.{fr[f][2]} = {f'FX(opcode, {fr[f][0]}, {fr[f][1]})' if not fr[f][3] else getparser(f)};" for f in filter(lambda x: fr[x][2] is not None, instr["variable_fields"])])}
+    snprintf(buff, sizeof(buff), "%-15s {", ".join(["0x%lx" if fr[f][2] == "imm" else "%s" for f in filter(lambda x: fr[x][2] is not None, instr["variable_fields"])])}", "{name.upper().replace("_", ".")}"{", " if len(instr["variable_fields"]) > 0 else ""}{", ".join([argstr(name, f, instr["extension"][0]) for f in instr["variable_fields"]])}); 
+    return buff;
+}}
+""")
 
     instr_dict = create_inst_dict(extensions, include_pseudo)
 
