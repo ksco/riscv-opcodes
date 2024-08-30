@@ -1098,7 +1098,9 @@ def argstr(instr_name, fieldname, ext):
 
 def getparser(f):
     if f == "imm12lo":
-        return "a.imm = (FX(opcode, 31, 25) << 5) | (FX(opcode, 11, 7));"
+        return """a.imm = (FX(opcode, 31, 25) << 5) | (FX(opcode, 11, 7));
+        a.imm = SIGN_EXTEND(a.imm, 12);
+"""
     elif f == "bimm12lo":
         return """a.imm = BX(opcode, 31) << 12;
         a.imm |= BX(opcode, 7) << 11;
