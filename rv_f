@@ -1,5 +1,5 @@
 flw       rd rs1 imm12 14..12=2 6..2=0x01 1..0=3
-fsw       imm12hi rs1 rs2 imm12lo 14..12=2 6..2=0x09 1..0=3
+fsw       imm12hi rs2 rs1 imm12lo 14..12=2 6..2=0x09 1..0=3
 fmadd.s   rd rs1 rs2 rs3 rm 26..25=0 6..2=0x10 1..0=3
 fmsub.s   rd rs1 rs2 rs3 rm 26..25=0 6..2=0x11 1..0=3
 fnmsub.s  rd rs1 rs2 rs3 rm 26..25=0 6..2=0x12 1..0=3

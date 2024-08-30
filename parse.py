@@ -1037,11 +1037,11 @@ fr = {
     "imm20": [31, 12, "imm",    False, False],
     "jimm20": [31, 12, "imm",   True,  False],
     "imm12": [31, 20, "imm",    False, False],
-    "csr": [31, 20, "csr",      False, False],
-    "imm12hi": [31, 25, "imm",  True,  False],
-    "bimm12hi": [31, 25, "imm", True,  False],
-    "imm12lo": [11, 7, None,    False, False],
-    "bimm12lo": [11, 7, None,   False, False],
+    "csr": [31, 20, "imm",      False, False],
+    "imm12hi": [31, 25, None,   False,  False],
+    "bimm12hi": [31, 25, None,  False,  False],
+    "imm12lo": [11, 7, "imm",   True,  False],
+    "bimm12lo": [11, 7, "imm",  True,  False],
     "shamtw": [24, 20, "imm",   False, False],
     "shamtw4": [23, 20, "imm",  False, False],
     "shamtd": [25, 20, "imm",   False, False],
@@ -1075,8 +1075,10 @@ def arrname(instr_name, fieldname, ext):
         else:
             return "gpr"
     elif ext in ["rv_f", "rv_d", "rv64_f", "rv64_d"]:
-        if instr_name.startswith("fclass"):
+        if instr_name.startswith("fclass") or instr_name.startswith("flt") or instr_name.startswith("feq") or instr_name.startswith("fle"):
             return "gpr" if fieldname == "rd" else "fpr"
+        if instr_name.startswith("fld") or instr_name.startswith("fsd") or instr_name.startswith("flw") or instr_name.startswith("fsw"):
+            return "gpr" if fieldname == "rs1" else "fpr"
         if instr_name.startswith("fcvt"):
             return "fpr" if instr_name.split("_")[1 if fieldname == "rd" else 2] in ["s", "d"] else "gpr"
         if instr_name.startswith("fmv"):
@@ -1087,7 +1089,7 @@ def arrname(instr_name, fieldname, ext):
 
 
 def argstr(instr_name, fieldname, ext):
-    if fr[fieldname][2] == "imm" and not fieldname.startswith("shamt") and not fieldname.startswith("z") and not fieldname.endswith("hi"):
+    if fr[fieldname][2] == "imm" and fieldname != "csr" and not fieldname.startswith("shamt") and not fieldname.startswith("z") and not fieldname.endswith("lo"):
         return f"SIGN_EXTEND(a.imm, {fr[fieldname][0]-fr[fieldname][1]+1})"
     elif fr[fieldname][2] == "imm":
         return "a.imm"
@@ -1095,9 +1097,9 @@ def argstr(instr_name, fieldname, ext):
 
 
 def getparser(f):
-    if f == "imm12hi":
+    if f == "imm12lo":
         return "a.imm = (FX(opcode, 31, 25) << 5) | (FX(opcode, 11, 7));"
-    elif f == "bimm12hi":
+    elif f == "bimm12lo":
         return """a.imm = BX(opcode, 31) << 12;
         a.imm |= BX(opcode, 7) << 11;
         a.imm |= FX(opcode, 30, 25) << 5;
@@ -1144,7 +1146,7 @@ if __name__ == "__main__":
 """)
                 continue
             print(f"""if ((opcode & {instr["mask"]}) == {instr["match"]}) {{
-{newline.join([f"    a.{fr[f][2]} = {f'FX(opcode, {fr[f][0]}, {fr[f][1]})' if not fr[f][3] else getparser(f)};" for f in filter(lambda x: fr[x][2] is not None, instr["variable_fields"])])}
+{newline.join([f"    a.{fr[f][2]} = {f'FX(opcode, {fr[f][0]}, {fr[f][1]});' if not fr[f][3] else getparser(f)}" for f in filter(lambda x: fr[x][2] is not None, instr["variable_fields"])])}
     snprintf(buff, sizeof(buff), "%-15s {", ".join(["0x%x(%d)" if fr[f][2] == "imm" else "%s" for f in filter(lambda x: fr[x][2] is not None, instr["variable_fields"])])}", "{name.upper().replace("_", ".")}"{", " if len(instr["variable_fields"]) > 0 else ""}{", ".join([argstr(name, f, instr["extension"][0]) for f in instr["variable_fields"] if fr[f][2] is not None for _ in (range(2) if fr[f][2] == "imm" else range(1))])}); 
     return buff;
 }}
