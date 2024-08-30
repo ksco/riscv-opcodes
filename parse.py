@@ -1064,6 +1064,8 @@ fr = {
 }
 
 def arrname(instr_name, fieldname, ext):
+    if fieldname in ["vd", "vs1", "vs2", "vs3"]:
+        return "vpr"
     if fieldname not in ["rd", "rs1", "rs2", "rs3"]:
         return fieldname
 
@@ -1135,15 +1137,15 @@ if __name__ == "__main__":
             if instr["extension"][0] == "rv_v":
                 instr["variable_fields"].reverse()
             if name == "fence":
-                print(f"""if ((opcode & {instr['mask']} == {instr['match']})) {{
+                print(f"""if ((opcode & {instr['mask']}) == {instr['match']}) {{
     snprintf(buff, sizeof(buff), "%-15s", "{name.upper()}");
     return buff;
 }}
 """)
                 continue
-            print(f"""if ((opcode & {instr["mask"]} == {instr["match"]})) {{
+            print(f"""if ((opcode & {instr["mask"]}) == {instr["match"]}) {{
 {newline.join([f"    a.{fr[f][2]} = {f'FX(opcode, {fr[f][0]}, {fr[f][1]})' if not fr[f][3] else getparser(f)};" for f in filter(lambda x: fr[x][2] is not None, instr["variable_fields"])])}
-    snprintf(buff, sizeof(buff), "%-15s {", ".join(["0x%lx" if fr[f][2] == "imm" else "%s" for f in filter(lambda x: fr[x][2] is not None, instr["variable_fields"])])}", "{name.upper().replace("_", ".")}"{", " if len(instr["variable_fields"]) > 0 else ""}{", ".join([argstr(name, f, instr["extension"][0]) for f in instr["variable_fields"]])}); 
+    snprintf(buff, sizeof(buff), "%-15s {", ".join(["0x%lx" if fr[f][2] == "imm" else "%s" for f in filter(lambda x: fr[x][2] is not None, instr["variable_fields"])])}", "{name.upper().replace("_", ".")}"{", " if len(instr["variable_fields"]) > 0 else ""}{", ".join([argstr(name, f, instr["extension"][0]) for f in instr["variable_fields"] if fr[f][2] is not None])}); 
     return buff;
 }}
 """)
