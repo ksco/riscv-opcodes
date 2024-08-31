@@ -1,0 +1,3 @@
+# rv_xtheadbs
+
+th.tst rd rs1 zthimm6 31..26=0x22 14..12=1 6..2=0x2 1..0=3

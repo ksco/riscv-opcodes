@@ -1,0 +1,11 @@
+# rv_xtheadbb
+
+th.srri     rd rs1 zthimm6          31..26=4 14..12=1 6..2=0x2 1..0=3
+th.srriw    rd rs1 zthimm5          31..25=0xa 14..12=1 6..2=0x2 1..0=3
+th.ext      rd rs1 zthimm6_ zthimm6 14..12=2 6..2=0x2 1..0=3
+th.extu     rd rs1 zthimm6_ zthimm6 14..12=3 6..2=0x2 1..0=3
+th.ff0      rd rs1                  31..20=0x840 14..12=1 6..2=0x2 1..0=3
+th.ff1      rd rs1                  31..20=0x860 14..12=1 6..2=0x2 1..0=3
+th.rev      rd rs1                  31..20=0x820 14..12=1 6..2=0x2 1..0=3
+th.revw     rd rs1                  31..20=0x900 14..12=1 6..2=0x2 1..0=3
+th.tstnbz   rd rs1                  31..20=0x800 14..12=1 6..2=0x2 1..0=3

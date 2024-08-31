@@ -1,0 +1,4 @@
+# rv_xtheadcondmov
+
+th.mveqz rd rs1 rs2 31..25=0x20 14..12=1 6..2=0x2 1..0=3
+th.mvnez rd rs1 rs2 31..25=0x21 14..12=1 6..2=0x2 1..0=3

@@ -98,3 +98,7 @@
 "c_rs2", 6, 2
 "c_sreg1", 9, 7
 "c_sreg2", 4, 2
+"zthimm2", 26, 25
+"zthimm6", 25, 20
+"zthimm6_", 31, 26
+"zthimm5", 24, 20

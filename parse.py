@@ -1007,7 +1007,7 @@ func encode(a obj.As) *inst {
         instr_str += f'''  case A{i.upper().replace("_","")}:
     return &inst{{ {hex(opcode)}, {hex(funct3)}, {hex(rs1)}, {hex(rs2)}, {signed(csr,12)}, {hex(funct7)} }}
 '''
-        
+
     with open('inst.go','w') as file:
         file.write(prelude)
         file.write(instr_str)
@@ -1026,41 +1026,45 @@ def signed(value, width):
     return value - (1<<width)
 
 fr = {
-    #               a.?            parser  zero  width
-    "rd": [11, 7, "rd",         False, False],
-    "rs2": [24, 20, "rs2",      False, False],
-    "rs1": [19, 15, "rs1",      False, False],
-    "rs3": [31, 27, "rs3",      False, False],
-    "aq": [26, 26, "aq",        False, False],
-    "rl": [25, 25, "rl",        False, False],
-    "rm": [14, 12, "rm",        False, False],
-    "imm20": [31, 12, "imm",    False, False],
-    "jimm20": [31, 12, "imm",   True,  False],
-    "imm12": [31, 20, "imm",    False, False],
-    "csr": [31, 20, "imm",      False, False],
-    "imm12hi": [31, 25, None,   False,  False],
-    "bimm12hi": [31, 25, None,  False,  False],
-    "imm12lo": [11, 7, "imm",   True,  False],
-    "bimm12lo": [11, 7, "imm",  True,  False],
-    "shamtw": [24, 20, "imm",   False, False],
-    "shamtw4": [23, 20, "imm",  False, False],
-    "shamtd": [25, 20, "imm",   False, False],
-    "imm2": [21, 20, "imm",     False, False],
-    "imm3": [22, 20, "imm",     False, False],
-    "imm4": [23, 20, "imm",     False, False],
-    "imm5": [24, 20, "imm",     False, False],
-    "imm6": [25, 20, "imm",     False, False],
-    "zimm": [19, 15, "imm",     False, False],
-    "vd": [11, 7, "vd",         False, False],
-    "vs3": [11, 7, "vs3",       False, False],
-    "vs1": [19, 15, "vs1",      False, False],
-    "vs2": [24, 20, "vs2",      False, False],
-    "vm": [25, 25, "vm",        False, False],
-    "nf": [31, 29, "nf",        False, False],
-    "simm5": [19, 15, "imm",    False, False],
-    "zimm5": [19, 15, "imm",    False, False],
-    "zimm10": [29, 20, "imm",   False, False],
-    "zimm11": [30, 20, "imm",   False, False],
+    #               a.?            parser
+    "rd": [11, 7, "rd",         False],
+    "rs2": [24, 20, "rs2",      False],
+    "rs1": [19, 15, "rs1",      False],
+    "rs3": [31, 27, "rs3",      False],
+    "aq": [26, 26, "aq",        False],
+    "rl": [25, 25, "rl",        False],
+    "rm": [14, 12, "rm",        False],
+    "imm20": [31, 12, "imm",    False],
+    "jimm20": [31, 12, "imm",   True],
+    "imm12": [31, 20, "imm",    False],
+    "csr": [31, 20, "imm",      False],
+    "imm12hi": [31, 25, None,   False],
+    "bimm12hi": [31, 25, None,  False],
+    "imm12lo": [11, 7, "imm",   True],
+    "bimm12lo": [11, 7, "imm",  True],
+    "shamtw": [24, 20, "imm",   False],
+    "shamtw4": [23, 20, "imm",  False],
+    "shamtd": [25, 20, "imm",   False],
+    "imm2": [21, 20, "imm",     False],
+    "imm3": [22, 20, "imm",     False],
+    "imm4": [23, 20, "imm",     False],
+    "imm5": [24, 20, "imm",     False],
+    "imm6": [25, 20, "imm",     False],
+    "zimm": [19, 15, "imm",     False],
+    "vd": [11, 7, "vd",         False],
+    "vs3": [11, 7, "vs3",       False],
+    "vs1": [19, 15, "vs1",      False],
+    "vs2": [24, 20, "vs2",      False],
+    "vm": [25, 25, "vm",        False],
+    "nf": [31, 29, "nf",        False],
+    "simm5": [19, 15, "imm",    False],
+    "zimm5": [19, 15, "imm",    False],
+    "zimm10": [29, 20, "imm",   False],
+    "zimm11": [30, 20, "imm",   False],
+    "zthimm2": [26, 25, "imm",  False],
+    "zthimm6": [25, 20, "imm",  False],
+    "zthimm6_": [31, 26, "imm2",False],
+    "zthimm5": [24, 20, "imm",  False],
 }
 
 def arrname(instr_name, fieldname, ext):
@@ -1093,6 +1097,8 @@ def argstr(instr_name, fieldname, ext):
         return f"SIGN_EXTEND(a.imm, {fr[fieldname][0]-fr[fieldname][1]+1})"
     elif fr[fieldname][2] == "imm":
         return "a.imm"
+    elif fr[fieldname][2] == "imm2":
+        return "a.imm2"
     return f"{arrname(instr_name, fieldname, ext)}[a.{fieldname}]"
 
 
@@ -1149,7 +1155,7 @@ if __name__ == "__main__":
                 continue
             print(f"""if ((opcode & {instr["mask"]}) == {instr["match"]}) {{
 {newline.join([f"    a.{fr[f][2]} = {f'FX(opcode, {fr[f][0]}, {fr[f][1]});' if not fr[f][3] else getparser(f)}" for f in filter(lambda x: fr[x][2] is not None, instr["variable_fields"])])}
-    snprintf(buff, sizeof(buff), "%-15s {", ".join(["0x%x(%d)" if fr[f][2] == "imm" else "%s" for f in filter(lambda x: fr[x][2] is not None, instr["variable_fields"])])}", "{name.upper().replace("_", ".")}"{", " if len(instr["variable_fields"]) > 0 else ""}{", ".join([argstr(name, f, instr["extension"][0]) for f in instr["variable_fields"] if fr[f][2] is not None for _ in (range(2) if fr[f][2] == "imm" else range(1))])}); 
+    snprintf(buff, sizeof(buff), "%-15s {", ".join(["0x%x(%d)" if fr[f][2].startswith("imm") else "%s" for f in filter(lambda x: fr[x][2] is not None, instr["variable_fields"])])}", "{name.upper().replace("_", ".")}"{", " if len(instr["variable_fields"]) > 0 else ""}{", ".join([argstr(name, f, instr["extension"][0]) for f in instr["variable_fields"] if fr[f][2] is not None for _ in (range(2) if fr[f][2].startswith("imm") else range(1))])}); 
     return buff;
 }}
 """)
@@ -1161,7 +1167,7 @@ if __name__ == "__main__":
     instr_dict = collections.OrderedDict(sorted(instr_dict.items()))
 
     if '-c' in sys.argv[1:]:
-        instr_dict_c = create_inst_dict(extensions, False, 
+        instr_dict_c = create_inst_dict(extensions, False,
                                         include_pseudo_ops=emitted_pseudo_ops)
         instr_dict_c = collections.OrderedDict(sorted(instr_dict_c.items()))
         make_c(instr_dict_c)
