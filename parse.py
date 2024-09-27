@@ -1104,22 +1104,22 @@ def argstr(instr_name, fieldname, ext):
 
 def getparser(f):
     if f == "imm12lo":
-        return """a.imm = (FX(opcode, 31, 25) << 5) | (FX(opcode, 11, 7));
-        a.imm = SIGN_EXTEND(a.imm, 12);
+        return """(FX(opcode, 31, 25) << 5) | (FX(opcode, 11, 7));
+    a.imm = SIGN_EXTEND(a.imm, 12);
 """
     elif f == "bimm12lo":
-        return """a.imm = BX(opcode, 31) << 12;
-        a.imm |= BX(opcode, 7) << 11;
-        a.imm |= FX(opcode, 30, 25) << 5;
-        a.imm |= FX(opcode, 11, 8) << 1;
-        a.imm = SIGN_EXTEND(a.imm, 13);
+        return """BX(opcode, 31) << 12;
+    a.imm |= BX(opcode, 7) << 11;
+    a.imm |= FX(opcode, 30, 25) << 5;
+    a.imm |= FX(opcode, 11, 8) << 1;
+    a.imm = SIGN_EXTEND(a.imm, 13);
 """
     elif f == "jimm20":
-        return """a.imm = BX(opcode, 31) << 20;
-        a.imm |= FX(opcode, 19, 12) << 12;
-        a.imm |= BX(opcode, 20) << 11;
-        a.imm |= FX(opcode, 30, 21) << 1;
-        a.imm = SIGN_EXTEND(a.imm, 21);
+        return """BX(opcode, 31) << 20;
+    a.imm |= FX(opcode, 19, 12) << 12;
+    a.imm |= BX(opcode, 20) << 11;
+    a.imm |= FX(opcode, 30, 21) << 1;
+    a.imm = SIGN_EXTEND(a.imm, 21);
 """
     return f"0; // TODO {f}"
 
@@ -1139,13 +1139,82 @@ if __name__ == "__main__":
     instr_dict = collections.OrderedDict(sorted(instr_dict.items()))
 
     known_fields = {"rd", "rs1", "rs2", "rs3", "vd", "vs1", "vs2", "vs3", "vm", "imm20"}
+    v_field_sort = {"vd": 0, "rd": 0, "vs3": 0, "vs2": 1, "rs2": 1, "vs1": 2, "rs1": 2, "simm5": 2, "vm": 3, "nf": 4}
 
     newline = "\n"
     if '-box64' in sys.argv[1:]:
         for name, instr in instr_dict.items():
             print(f"// {instr['extension'][0]:>7}, {name.upper().replace('_', '.')}")
+            if name == "vsetvli":
+                print(f"""if ((opcode & 0x8000707f) == 0x7057) {{
+    a.imm = FX(opcode, 30, 20);
+    a.rs1 = FX(opcode, 19, 15);
+    a.rd = FX(opcode, 11, 7);
+    const char *vta_str, *vma_str, *lmul_str, *sew_str;
+    if (a.imm & 0b01000000) vta_str = "ta";
+    else vta_str = "tu";
+    if (a.imm & 0b10000000) vma_str = "ma";
+    else vma_str = "mu";
+    switch (a.imm & 0b00000111) {{
+    case 0b101: lmul_str = "mf8"; break;
+    case 0b110: lmul_str = "mf4"; break;
+    case 0b111: lmul_str = "mf2"; break;
+    case 0b000: lmul_str = "m1"; break;
+    case 0b001: lmul_str = "m2"; break;
+    case 0b010: lmul_str = "m4"; break;
+    case 0b011: lmul_str = "m8"; break;
+    default: lmul_str = "reserved"; break;
+    }}
+    switch ((a.imm & 0b00111000) >> 3) {{
+    case 0b000: sew_str = "e8"; break;
+    case 0b001: sew_str = "e16"; break;
+    case 0b010: sew_str = "e32"; break;
+    case 0b011: sew_str = "e64"; break;
+    default: sew_str = "reserved"; break;
+    }}
+
+    snprintf(buff, sizeof(buff), "%-15s %s, %s, %s, %s, %s, %s", "VSETVLI", gpr[a.rd], gpr[a.rs1], sew_str, lmul_str, vta_str, vma_str);
+    return buff;
+}}
+""")
+                continue
+            if name == "vsetivli":
+                print(f"""if ((opcode & 0xc000707f) == 0xc0007057) {{
+    a.imm = FX(opcode, 29, 20);
+    a.imm2 = FX(opcode, 19, 15);
+    a.rd = FX(opcode, 11, 7);
+    const char *vta_str, *vma_str, *lmul_str, *sew_str;
+    if (a.imm & 0b01000000) vta_str = "ta";
+    else vta_str = "tu";
+    if (a.imm & 0b10000000) vma_str = "ma";
+    else vma_str = "mu";
+    switch (a.imm & 0b00000111) {{
+    case 0b101: lmul_str = "mf8"; break;
+    case 0b110: lmul_str = "mf4"; break;
+    case 0b111: lmul_str = "mf2"; break;
+    case 0b000: lmul_str = "m1"; break;
+    case 0b001: lmul_str = "m2"; break;
+    case 0b010: lmul_str = "m4"; break;
+    case 0b011: lmul_str = "m8"; break;
+    default: lmul_str = "reserved"; break;
+    }}
+    switch ((a.imm & 0b00111000) >> 3) {{
+    case 0b000: sew_str = "e8"; break;
+    case 0b001: sew_str = "e16"; break;
+    case 0b010: sew_str = "e32"; break;
+    case 0b011: sew_str = "e64"; break;
+    default: sew_str = "reserved"; break;
+    }}
+
+    snprintf(buff, sizeof(buff), "%-15s %s, %d, %s, %s, %s, %s", "VSETVLI", gpr[a.rd], a.imm2, sew_str, lmul_str, vta_str, vma_str);
+    return buff;
+}}
+""")
+                continue
             if instr["extension"][0] == "rv_v":
-                instr["variable_fields"].reverse()
+                for vf in instr["variable_fields"]:
+                    assert(v_field_sort[vf] is not None)
+                instr["variable_fields"] = sorted(instr["variable_fields"], key=lambda x: v_field_sort[x])
             if name == "fence":
                 print(f"""if ((opcode & {instr['mask']}) == {instr['match']}) {{
     snprintf(buff, sizeof(buff), "%-15s", "{name.upper()}");
