@@ -1206,7 +1206,7 @@ if __name__ == "__main__":
     default: sew_str = "reserved"; break;
     }}
 
-    snprintf(buff, sizeof(buff), "%-15s %s, %d, %s, %s, %s, %s", "VSETVLI", gpr[a.rd], a.imm2, sew_str, lmul_str, vta_str, vma_str);
+    snprintf(buff, sizeof(buff), "%-15s %s, %d, %s, %s, %s, %s", "VSETIVLI", gpr[a.rd], a.imm2, sew_str, lmul_str, vta_str, vma_str);
     return buff;
 }}
 """)
