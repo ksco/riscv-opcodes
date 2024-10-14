@@ -1037,7 +1037,7 @@ fr = {
     "imm20": [31, 12, "imm",    False],
     "jimm20": [31, 12, "imm",   True],
     "imm12": [31, 20, "imm",    False],
-    "csr": [31, 20, "imm",      False],
+    "csr": [31, 20, "csr",      False],
     "imm12hi": [31, 25, None,   False],
     "bimm12hi": [31, 25, None,  False],
     "imm12lo": [11, 7, "imm",   True],
@@ -1097,6 +1097,8 @@ def argstr(instr_name, fieldname, ext):
         return f"SIGN_EXTEND(a.imm, {fr[fieldname][0]-fr[fieldname][1]+1})"
     elif fr[fieldname][2] == "imm":
         return "a.imm"
+    elif fr[fieldname][2] == "csr":
+        return "a.csr"
     elif fr[fieldname][2] == "imm2":
         return "a.imm2"
     return f"{arrname(instr_name, fieldname, ext)}[a.{fieldname}]"
@@ -1224,7 +1226,7 @@ if __name__ == "__main__":
                 continue
             print(f"""if ((opcode & {instr["mask"]}) == {instr["match"]}) {{
 {newline.join([f"    a.{fr[f][2]} = {f'FX(opcode, {fr[f][0]}, {fr[f][1]});' if not fr[f][3] else getparser(f)}" for f in filter(lambda x: fr[x][2] is not None, instr["variable_fields"])])}
-    snprintf(buff, sizeof(buff), "%-15s {", ".join(["0x%x(%d)" if fr[f][2].startswith("imm") else "%s" for f in filter(lambda x: fr[x][2] is not None, instr["variable_fields"])])}", "{name.upper().replace("_", ".")}"{", " if len(instr["variable_fields"]) > 0 else ""}{", ".join([argstr(name, f, instr["extension"][0]) for f in instr["variable_fields"] if fr[f][2] is not None for _ in (range(2) if fr[f][2].startswith("imm") else range(1))])}); 
+    snprintf(buff, sizeof(buff), "%-15s {", ".join(["0x%x(%d)" if fr[f][2].startswith("imm") or fr[f][2].startswith("csr") else "%s" for f in filter(lambda x: fr[x][2] is not None, instr["variable_fields"])])}", "{name.upper().replace("_", ".")}"{", " if len(instr["variable_fields"]) > 0 else ""}{", ".join([argstr(name, f, instr["extension"][0]) for f in instr["variable_fields"] if fr[f][2] is not None for _ in (range(2) if fr[f][2].startswith("imm") or fr[f][2].startswith("csr")  else range(1))])}); 
     return buff;
 }}
 """)
