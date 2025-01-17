@@ -1,0 +1,13 @@
+# rv_xtheadmemidx
+
+th.lbia   rd rs1 zthimm5 zthimm2 31..27=0x3  14..12=4 6..2=0x2 1..0=3
+th.lbuia  rd rs1 zthimm5 zthimm2 31..27=0x13 14..12=4 6..2=0x2 1..0=3
+th.lhia   rd rs1 zthimm5 zthimm2 31..27=0x7  14..12=4 6..2=0x2 1..0=3
+th.lhuia  rd rs1 zthimm5 zthimm2 31..27=0x17 14..12=4 6..2=0x2 1..0=3
+th.lwia   rd rs1 zthimm5 zthimm2 31..27=0xb  14..12=4 6..2=0x2 1..0=3
+th.lwuia  rd rs1 zthimm5 zthimm2 31..27=0x1b 14..12=4 6..2=0x2 1..0=3
+th.ldia   rd rs1 zthimm5 zthimm2 31..27=0xf  14..12=4 6..2=0x2 1..0=3
+th.sbib   rd rs1 zthimm5 zthimm2 31..27=0x1  14..12=5 6..2=0x2 1..0=3
+th.shib   rd rs1 zthimm5 zthimm2 31..27=0x5  14..12=5 6..2=0x2 1..0=3
+th.swib   rd rs1 zthimm5 zthimm2 31..27=0x9  14..12=5 6..2=0x2 1..0=3
+th.sdib   rd rs1 zthimm5 zthimm2 31..27=0xd  14..12=5 6..2=0x2 1..0=3
