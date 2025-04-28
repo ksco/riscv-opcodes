@@ -1093,8 +1093,10 @@ def arrname(instr_name, fieldname, ext):
 
 
 def argstr(instr_name, fieldname, ext):
-    if fr[fieldname][2] == "imm" and fieldname != "csr" and not fieldname.startswith("shamt") and not fieldname.startswith("z") and not fieldname.endswith("lo"):
+    if fr[fieldname][2] == "imm" and fieldname != "csr" and fieldname != "jimm20" and fieldname != "imm20" and not fieldname.startswith("shamt") and not fieldname.startswith("z") and not fieldname.endswith("lo"):
         return f"SIGN_EXTEND(a.imm, {fr[fieldname][0]-fr[fieldname][1]+1})"
+    elif fieldname == "imm20":
+        return f"a.imm << 12"
     elif fr[fieldname][2] == "imm":
         return "a.imm"
     elif fr[fieldname][2] == "csr":
@@ -1224,9 +1226,10 @@ if __name__ == "__main__":
 }}
 """)
                 continue
+            directj = name in ["jal", "beq", "bne", "blt", "bge", "bltu", "bgeu"]
             print(f"""if ((opcode & {instr["mask"]}) == {instr["match"]}) {{
 {newline.join([f"    a.{fr[f][2]} = {f'FX(opcode, {fr[f][0]}, {fr[f][1]});' if not fr[f][3] else getparser(f)}" for f in filter(lambda x: fr[x][2] is not None, instr["variable_fields"])])}
-    snprintf(buff, sizeof(buff), "%-15s {", ".join(["0x%x(%d)" if fr[f][2].startswith("imm") or fr[f][2].startswith("csr") else "%s" for f in filter(lambda x: fr[x][2] is not None, instr["variable_fields"])])}", "{name.upper().replace("_", ".")}"{", " if len(instr["variable_fields"]) > 0 else ""}{", ".join([argstr(name, f, instr["extension"][0]) for f in instr["variable_fields"] if fr[f][2] is not None for _ in (range(2) if fr[f][2].startswith("imm") or fr[f][2].startswith("csr")  else range(1))])});
+    {'int len = ' if directj else ''}snprintf(buff, sizeof(buff), "%-15s {", ".join(["0x%x(%d)" if fr[f][2].startswith("imm") or fr[f][2].startswith("csr") else "%s" for f in filter(lambda x: fr[x][2] is not None, instr["variable_fields"])])}", "{name.upper().replace("_", ".")}"{", " if len(instr["variable_fields"]) > 0 else ""}{", ".join([argstr(name, f, instr["extension"][0]) for f in instr["variable_fields"] if fr[f][2] is not None for _ in (range(2) if fr[f][2].startswith("imm") or fr[f][2].startswith("csr")  else range(1))])});{'\n    snprintf(buff+len, sizeof(buff)-len, " # %+di(0x%lx)", a.imm >> 2, addr + (uintptr_t)a.imm);' if directj else ''}
     return buff;
 }}
 """)
