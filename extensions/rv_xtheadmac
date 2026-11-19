@@ -1,0 +1,2 @@
+# XTheadMac instructions emitted by Box64
+th.mula rd rs1 rs2 31..25=0b0010000 14..12=1 6..0=0x0b

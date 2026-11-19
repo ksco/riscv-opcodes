@@ -1,0 +1,2 @@
+# XTheadFMemIdx instructions emitted by Box64
+th.flrd rd rs1 rs2 zthimm2 31..27=0b01100 14..12=6 6..0=0x0b
